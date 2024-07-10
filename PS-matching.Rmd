@@ -1,0 +1,52 @@
+---
+title: "Untitled"
+author: '7557756'
+date: "2024-07-07"
+output: html_document
+---
+
+```{r}
+library(MatchIt)
+
+# Simulierte Daten
+set.seed(123)
+n <- 1000
+age <- rnorm(n, 30, 10)
+education <- rnorm(n, 12, 2)
+income <- 5000 + 500 * age + 1000 * education + rnorm(n, 0, 1000)
+
+# Treatment-Indikator (Teilnahme am Programm)
+treatment <- rbinom(n, 1, plogis(0.3 * age - 0.5 * education))
+
+# Einkommen nach Behandlung
+income_post <- income + treatment * (500 + (100 * age)) + rnorm(n, 0, 1000)
+
+# Dataframe erstellen
+data <- data.frame(age, education, treatment, income_post)
+
+# 1. Matching anhand der Kovariaten durchführen, wobei der Propensity Score intern berechnet wird
+match_it <- matchit(treatment ~ age + education, method = "nearest", data = data, caliper = 0.1)
+
+# 2. Gematchte Daten extrahieren
+matched_data <- match.data(match_it)
+
+# 3. Überprüfen der Balance der Kovariaten
+print(summary(match_it))
+
+# 4. Visualisierung der Balance der Kovariaten nach Matching
+library(ggplot2)
+ggplot(matched_data, aes(x = factor(treatment), y = age)) +
+  geom_boxplot() +
+  labs(title = "Verteilung des Alters nach Treatment", x = "Treatment", y = "Age")
+
+ggplot(matched_data, aes(x = factor(treatment), y = education)) +
+  geom_boxplot() +
+  labs(title = "Verteilung der Bildung nach Treatment", x = "Treatment", y = "Education")
+
+# 5. Schätzen des Behandlungseffekts
+ate_model <- lm(income_post ~ treatment, data = matched_data)
+summary(ate_model)
+
+#print(match_it)
+```
+
